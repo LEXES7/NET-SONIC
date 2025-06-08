@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { NetworkSpeedTest } from '@/lib/speedtest';
-import { SpeedTestResult, TestProgress } from '@/lib/types';
+import { SpeedTestResult, TestProgress, BrowserInfo } from '@/lib/types';
+import { detectBrowser } from '../lib/browserDetect';
 
 interface UseSpeedTestReturn {
   isRunning: boolean;
@@ -15,6 +16,11 @@ interface UseSpeedTestReturn {
 // Local storage key for saving test history
 const HISTORY_STORAGE_KEY = 'speedtest_history';
 
+// Fallback browser info if detection fails
+const defaultBrowserInfo: Pick<BrowserInfo, 'isSafari'> = {
+  isSafari: false
+};
+
 export const useSpeedTest = (): UseSpeedTestReturn => {
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState<TestProgress>({
@@ -25,6 +31,21 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
   const [result, setResult] = useState<SpeedTestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<SpeedTestResult[]>([]);
+  
+  // Detect browser once at component mount
+  const [browser, setBrowser] = useState<Pick<BrowserInfo, 'isSafari'>>(defaultBrowserInfo);
+  
+  useEffect(() => {
+    // Safe browser detection that won't break SSR
+    if (typeof window !== 'undefined') {
+      try {
+        const detectedBrowser = detectBrowser();
+        setBrowser({ isSafari: detectedBrowser.isSafari });
+      } catch (err) {
+        console.error('Browser detection failed:', err);
+      }
+    }
+  }, []);
 
   // Load history from localStorage on first mount
   useEffect(() => {
@@ -64,9 +85,10 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
     setProgress({ phase: 'idle', progress: 0, currentSpeed: 0 });
 
     try {
-      const speedTest = new NetworkSpeedTest((progressData) => {
-        setProgress(progressData);
-      });
+      const speedTest = new NetworkSpeedTest(
+        (progressData) => setProgress(progressData),
+        { isSafari: browser.isSafari }
+      );
 
       const testResult = await speedTest.runFullTest();
       
@@ -88,7 +110,7 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
     } finally {
       setIsRunning(false);
     }
-  }, [isRunning]);
+  }, [isRunning, browser.isSafari]);
 
   const resetTest = useCallback(() => {
     setIsRunning(false);

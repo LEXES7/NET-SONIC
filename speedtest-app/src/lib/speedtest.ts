@@ -1,4 +1,4 @@
-import { SpeedTestResult, TestProgress } from './types';
+import { SpeedTestResult, TestProgress, SpeedTestOptions } from './types';
 import { calculateAverage } from './utils';
 
 export class NetworkSpeedTest {
@@ -18,9 +18,11 @@ export class NetworkSpeedTest {
   ];
 
   private onProgress?: (progress: TestProgress) => void;
+  private options: SpeedTestOptions;
 
-  constructor(onProgress?: (progress: TestProgress) => void) {
+  constructor(onProgress?: (progress: TestProgress) => void, options: SpeedTestOptions = {}) {
     this.onProgress = onProgress;
+    this.options = options;
   }
 
   async runFullTest(): Promise<SpeedTestResult> {
@@ -46,12 +48,13 @@ export class NetworkSpeedTest {
     
     for (let i = 0; i < samples; i++) {
       // Add cache-busting parameter to prevent browser caching
-      const cacheBuster = `?t=${Date.now()}${Math.random()}`;
+      const cacheBuster = `?t=${Date.now()}-${Math.random()}`;
       const start = performance.now();
       try {
         await fetch(`/api/ping${cacheBuster}`, { 
           method: 'HEAD',
           cache: 'no-store',
+          credentials: 'omit'
         });
         const end = performance.now();
         pingResults.push(end - start);
@@ -80,12 +83,13 @@ export class NetworkSpeedTest {
     const measurements: number[] = [];
     
     for (let i = 0; i < samples; i++) {
-      const cacheBuster = `?t=${Date.now()}${Math.random()}`;
+      const cacheBuster = `?t=${Date.now()}-${Math.random()}`;
       const start = performance.now();
       try {
         await fetch(`/api/ping${cacheBuster}`, { 
           method: 'HEAD',
           cache: 'no-store',
+          credentials: 'omit'
         });
         const end = performance.now();
         measurements.push(end - start);
@@ -143,107 +147,159 @@ export class NetworkSpeedTest {
     }
   }
 
-  private async performSingleDownloadTest(url: string): Promise<number> {
-    try {
-      // Add cache-busting query parameter
-      const cacheBuster = `?t=${Date.now()}${Math.random()}`;
-      const start = performance.now();
-      const response = await fetch(url + cacheBuster, { 
-        cache: 'no-store',
-        // Set a timeout to prevent extremely slow connections from hanging
-        signal: AbortSignal.timeout(5000) 
-      });
-      const data = await response.blob();
-      const end = performance.now();
-      
-      // Calculate speed in Mbps
-      const fileSizeInBits = data.size * 8;
-      const durationInSeconds = (end - start) / 1000;
-      
-      // Filter out unrealistically fast results (likely cached)
-      if (durationInSeconds < 0.1) return 0;
-      
-      return fileSizeInBits / durationInSeconds / 1_000_000;
-    } catch (e) {
-      console.error('Single download test failed:', e);
-      return 0;
+private async performSingleDownloadTest(url: string): Promise<number> {
+  try {
+    // Add cache-busting and use more browser-compatible fetch options
+    const cacheBuster = `?cache=${Date.now()}-${Math.random()}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    
+    const start = performance.now();
+    const response = await fetch(url + cacheBuster, { 
+      cache: 'no-store',
+      credentials: 'omit', // Don't send cookies
+      keepalive: false,
+      signal: controller.signal
+    });
+    
+    // For Safari, use blob(), for other browsers use arrayBuffer() for better performance
+    let fileSizeInBits: number;
+    
+    if (this.options.isSafari) {
+      const blob = await response.blob();
+      fileSizeInBits = blob.size * 8;
+    } else {
+      const buffer = await response.arrayBuffer();
+      fileSizeInBits = buffer.byteLength * 8;
     }
+      
+    clearTimeout(timeoutId);
+    const end = performance.now();
+    
+    const durationInSeconds = (end - start) / 1000;
+    
+    // Filter out unrealistically fast results (likely cached)
+    if (durationInSeconds < 0.05) return 0;
+    
+    return fileSizeInBits / durationInSeconds / 1_000_000;
+  } catch (e) {
+    console.error('Single download test failed:', e);
+    return 0;
   }
+}
 
-  private async measureUploadSpeed(): Promise<number> {
-    // Reset progress for upload test
-    this.updateProgress('upload', 0, 0);
+private async measureUploadSpeed(): Promise<number> {
+  // Reset progress for upload test
+  this.updateProgress('upload', 0, 0);
+  
+  const testDuration = 8000; // 8 seconds
+  const startTime = Date.now();
+  const speeds: number[] = [];
+  
+  try {
+    // First, check upload capability with a small payload
+    const probeResult = await this.performSingleUploadTest(64 * 1024); // 64KB probe
     
-    const testDuration = 10000; // 10 seconds
-    const startTime = Date.now();
-    const speeds: number[] = [];
+    // Determine optimal number of parallel streams based on probe result
+    const parallelUploads = probeResult > 5 ? 4 : (probeResult > 1 ? 3 : 2);
     
-    try {
-      while (Date.now() - startTime < testDuration) {
-        const parallelUploads = 3;
-        const payloadSize = this.uploadSizes[Math.floor(Math.random() * this.uploadSizes.length)];
+    while (Date.now() - startTime < testDuration) {
+      // Dynamically choose payload size based on detected speed
+      // For slower connections, use smaller payloads
+      let payloadSize: number;
+      const recentAvg = speeds.length > 0 
+        ? calculateAverage(speeds.slice(-3)) 
+        : probeResult;
         
-        const uploadTasks = Array(parallelUploads).fill(0).map(() => 
-          this.performSingleUploadTest(payloadSize)
-        );
-        
-        const results = await Promise.all(uploadTasks);
-        speeds.push(...results.filter(Boolean));
-        
-        // Update progress
-        const elapsedTime = Date.now() - startTime;
-        const progressPercent = Math.min(100, (elapsedTime / testDuration) * 100);
-        
-        // Calculate the current average speed for display
-        const currentAvgSpeed = calculateAverage(speeds.slice(-5));
-        
-        this.updateProgress('upload', progressPercent, currentAvgSpeed);
+      if (recentAvg < 1) payloadSize = 256 * 1024;      // < 1Mbps: 256KB
+      else if (recentAvg < 5) payloadSize = 512 * 1024;  // < 5Mbps: 512KB
+      else if (recentAvg < 25) payloadSize = 1024 * 1024; // < 25Mbps: 1MB
+      else payloadSize = 2 * 1024 * 1024;                // >= 25Mbps: 2MB
+      
+      const uploadTasks = Array(parallelUploads).fill(0).map(() => 
+        this.performSingleUploadTest(payloadSize)
+      );
+      
+      const results = await Promise.all(uploadTasks);
+      const validResults = results.filter(Boolean);
+      
+      if (validResults.length > 0) {
+        speeds.push(...validResults);
       }
       
-      // Calculate average speed, discarding outliers
-      return this.calculateAverageWithOutlierRemoval(speeds);
-    } catch (error) {
-      console.error('Upload speed test failed:', error);
-      return 0;
+      // Update progress
+      const elapsedTime = Date.now() - startTime;
+      const progressPercent = Math.min(100, (elapsedTime / testDuration) * 100);
+      
+      // Calculate the current average speed for display
+      const currentAvgSpeed = speeds.length > 0 
+        ? calculateAverage(speeds.slice(-4)) 
+        : 0;
+      
+      this.updateProgress('upload', progressPercent, currentAvgSpeed);
     }
+    
+    // Calculate average speed, discarding outliers
+    return this.calculateAverageWithOutlierRemoval(speeds);
+  } catch (error) {
+    console.error('Upload speed test failed:', error);
+    return 0;
   }
+}
 
-  private async performSingleUploadTest(sizeInBytes: number): Promise<number> {
-    try {
-      // Generate payload of random data
-      const payload = new ArrayBuffer(sizeInBytes);
-      const view = new Uint8Array(payload);
-      for (let i = 0; i < view.length; i += 4096) {
-        view[i] = Math.floor(Math.random() * 256);
-      }
-      
-      // Upload the data and measure time
-      const cacheBuster = `?t=${Date.now()}${Math.random()}`;
-      const start = performance.now();
-      await fetch(`/api/upload${cacheBuster}`, {
-        method: 'POST',
-        body: payload,
-        headers: {
-          'Content-Type': 'application/octet-stream'
-        },
-        // Set a timeout to prevent extremely slow connections from hanging
-        signal: AbortSignal.timeout(5000)
-      });
-      const end = performance.now();
-      
-      // Calculate speed in Mbps (megabits per second)
-      const payloadSizeInBits = sizeInBytes * 8;
-      const durationInSeconds = (end - start) / 1000;
-      
-      // Filter out unrealistic results
-      if (durationInSeconds < 0.01) return 0;
-      
-      return payloadSizeInBits / durationInSeconds / 1_000_000;
-    } catch (e) {
-      console.error('Single upload test failed:', e);
+private async performSingleUploadTest(sizeInBytes: number): Promise<number> {
+  try {
+    // Generate payload of random data
+    const payload = new ArrayBuffer(sizeInBytes);
+    const view = new Uint8Array(payload);
+    
+    // Only randomize a small portion for efficiency
+    const stride = Math.max(32, Math.floor(view.length / 1000));
+    for (let i = 0; i < view.length; i += stride) {
+      view[i] = Math.floor(Math.random() * 256);
+    }
+    
+    // Upload the data and measure time
+    const cacheBuster = `?t=${Date.now()}-${Math.random()}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const start = performance.now();
+    
+    const response = await fetch(`/api/upload${cacheBuster}`, {
+      method: 'POST',
+      body: payload,
+      headers: {
+        'Content-Type': 'application/octet-stream'
+      },
+      credentials: 'omit',
+      signal: controller.signal
+    });
+    
+    // Verify the server actually received the data
+    const responseData = await response.json();
+    clearTimeout(timeoutId);
+    const end = performance.now();
+    
+    // Calculate speed in Mbps (megabits per second)
+    const payloadSizeInBits = sizeInBytes * 8;
+    const durationInSeconds = (end - start) / 1000;
+    
+    // Filter out unrealistic results
+    if (durationInSeconds < 0.05) return 0;
+    
+    // Verify server received correct byte count
+    if (!responseData.success || responseData.received !== sizeInBytes) {
+      console.warn('Upload size mismatch:', responseData);
       return 0;
     }
+    
+    return payloadSizeInBits / durationInSeconds / 1_000_000;
+  } catch (e) {
+    console.error('Single upload test failed:', e);
+    return 0;
   }
+}
   
   // Calculate average speed with outlier removal
   private calculateAverageWithOutlierRemoval(speeds: number[]): number {

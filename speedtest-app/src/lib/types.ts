@@ -67,3 +67,22 @@ export interface SpeedRating {
    */
   description: string;
 }
+
+/**
+ * Browser detection result
+ */
+export interface BrowserInfo {
+  name: string;
+  version: string;
+  isSafari: boolean;
+  isChrome: boolean;
+  isMobile: boolean;
+}
+
+/**
+ * Speed test options
+ */
+export interface SpeedTestOptions {
+  isSafari?: boolean;
+  useAltDownload?: boolean;
+}

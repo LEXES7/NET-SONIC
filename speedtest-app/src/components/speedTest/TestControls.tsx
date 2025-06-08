@@ -17,6 +17,7 @@ export default function TestControls({ isRunning, onStart, onReset }: TestContro
             ? 'bg-blue-400 cursor-not-allowed' 
             : 'bg-blue-600 hover:bg-blue-700'}
           transition-colors`}
+        aria-label="Start speed test"
       >
         {isRunning ? 'Testing...' : 'Start Test'}
       </button>
@@ -29,6 +30,7 @@ export default function TestControls({ isRunning, onStart, onReset }: TestContro
             ? 'border-gray-300 text-gray-400 cursor-not-allowed'
             : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'}
           transition-colors`}
+        aria-label="Reset test results"
       >
         Reset
       </button>
