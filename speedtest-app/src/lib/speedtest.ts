@@ -162,7 +162,7 @@ private async performSingleDownloadTest(url: string): Promise<number> {
       signal: controller.signal
     });
     
-    // For Safari, use blob(), for other browsers use arrayBuffer() for better performance
+    // For Safari, use blob(), for other browsers arrayBuffer() for better performance
     let fileSizeInBits: number;
     
     if (this.options.isSafari) {
