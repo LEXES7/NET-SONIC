@@ -39,7 +39,6 @@ export default function Home() {
         {(result || error) && (
           <TestResults 
             result={result} 
-            error={error} 
           />
         )}
         

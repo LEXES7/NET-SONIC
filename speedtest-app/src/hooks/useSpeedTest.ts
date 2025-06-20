@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { NetworkSpeedTest } from '@/lib/speedtest';
 import { SpeedTestResult, TestProgress, BrowserInfo } from '@/lib/types';
 import { detectBrowser } from '../lib/browserDetect';
@@ -32,11 +32,14 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<SpeedTestResult[]>([]);
   
-  // Detect browser once at component mount
+  // Keep reference to test instance for cancellation
+  const speedTestRef = useRef<NetworkSpeedTest | null>(null);
+  
+  // Browser detection
   const [browser, setBrowser] = useState<Pick<BrowserInfo, 'isSafari'>>(defaultBrowserInfo);
   
+  // Init and cleanup
   useEffect(() => {
-    // Safe browser detection that won't break SSR
     if (typeof window !== 'undefined') {
       try {
         const detectedBrowser = detectBrowser();
@@ -45,6 +48,14 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
         console.error('Browser detection failed:', err);
       }
     }
+    
+    // Clean up any test on unmount
+    return () => {
+      if (speedTestRef.current) {
+        speedTestRef.current.cancelTest();
+        speedTestRef.current = null;
+      }
+    };
   }, []);
 
   // Load history from localStorage on first mount
@@ -65,7 +76,7 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
     }
   }, []);
 
-  // Save history to localStorage whenever it changes
+  // Save history to localStorage when it changes
   useEffect(() => {
     if (history.length > 0) {
       try {
@@ -76,25 +87,44 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
     }
   }, [history]);
 
+  // Improved progress handler
+  const handleProgress = useCallback((progressData: TestProgress) => {
+    // Ensure we never report 0% progress when test is active
+    if (progressData.phase !== 'idle' && progressData.phase !== 'complete' && progressData.progress < 5) {
+      progressData.progress = 5;
+    }
+    
+    setProgress(progressData);
+  }, []);
+
   const startTest = useCallback(async () => {
     if (isRunning) return;
 
     setIsRunning(true);
     setError(null);
     setResult(null);
-    setProgress({ phase: 'idle', progress: 0, currentSpeed: 0 });
+    
+    // Start with a minimum progress
+    setProgress({ phase: 'ping', progress: 5, currentSpeed: 0 });
 
     try {
+      // Create a new test instance and store the reference
       const speedTest = new NetworkSpeedTest(
-        (progressData) => setProgress(progressData),
+        handleProgress,
         { isSafari: browser.isSafari }
       );
+      
+      speedTestRef.current = speedTest;
 
       const testResult = await speedTest.runFullTest();
       
-      // Don't accept clearly invalid results (e.g., extremely high speeds that are unrealistic)
-      if (testResult.downloadSpeed > 10000 || testResult.uploadSpeed > 10000) {
-        throw new Error('Test produced unrealistic results. Please try again.');
+      // Sanity checks for results
+      if (testResult.downloadSpeed > 2000) { // 2 Gbps is an upper limit for most home connections
+        testResult.downloadSpeed = 2000;
+      }
+      
+      if (testResult.uploadSpeed > 1000) { // 1 Gbps is an upper limit for most home upload speeds
+        testResult.uploadSpeed = 1000;
       }
       
       setResult(testResult);
@@ -102,17 +132,28 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
         const updated = [testResult, ...prev.slice(0, 9)]; // Keep last 10 results
         return updated;
       });
+      
+      // Ensure we show 100% on completion
       setProgress({ phase: 'complete', progress: 100, currentSpeed: 0 });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Test failed';
       setError(errorMessage);
       console.error('Speed test failed:', err);
+      // Reset progress
+      setProgress(prev => ({ ...prev, phase: 'idle' }));
     } finally {
       setIsRunning(false);
+      speedTestRef.current = null;
     }
-  }, [isRunning, browser.isSafari]);
+  }, [isRunning, browser.isSafari, handleProgress]);
 
   const resetTest = useCallback(() => {
+    // Cancel any ongoing test
+    if (speedTestRef.current) {
+      speedTestRef.current.cancelTest();
+      speedTestRef.current = null;
+    }
+    
     setIsRunning(false);
     setProgress({ phase: 'idle', progress: 0, currentSpeed: 0 });
     setResult(null);

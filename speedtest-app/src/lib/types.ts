@@ -13,27 +13,37 @@ export interface SpeedTestResult {
   uploadSpeed: number;
   
   /**
-   * Network latency in milliseconds
+   * Ping latency in milliseconds
    */
   ping: number;
   
   /**
-   * Ping variation in milliseconds
+   * Jitter in milliseconds
    */
   jitter: number;
   
   /**
-   * When the test was performed
+   * Timestamp when the test was performed
    */
   timestamp: Date;
+  
+  /**
+   * Internet Service Provider name
+   */
+  isp?: string;
+  
+  /**
+   * Connection type (WiFi, Ethernet, Cellular, etc.)
+   */
+  connectionType?: string;
 }
 
 /**
- * Current progress of the speed test
+ * Progress information during speed test
  */
 export interface TestProgress {
   /**
-   * Current phase of testing
+   * Current phase of the speed test
    */
   phase: 'idle' | 'ping' | 'download' | 'upload' | 'complete';
   
@@ -43,46 +53,87 @@ export interface TestProgress {
   progress: number;
   
   /**
-   * Current speed in Mbps
+   * Current speed in Mbps (for download/upload phases)
    */
   currentSpeed: number;
 }
 
 /**
- * Speed rating result
+ * Speed rating information
  */
 export interface SpeedRating {
   /**
-   * Rating label (e.g., "Fast", "Slow")
+   * Rating text (e.g., "Fast", "Slow")
    */
   rating: string;
   
   /**
-   * Color code for UI display
+   * Rating color (for UI representation)
    */
   color: string;
   
   /**
-   * Descriptive explanation of the rating
+   * Description of what this speed means
    */
   description: string;
 }
 
 /**
- * Browser detection result
+ * Browser detection information
  */
 export interface BrowserInfo {
-  name: string;
-  version: string;
+  /**
+   * Whether the browser is Safari
+   */
   isSafari: boolean;
-  isChrome: boolean;
+  
+  /**
+   * Whether the device is mobile
+   */
   isMobile: boolean;
+  
+  /**
+   * Whether the device is running iOS
+   */
+  isIOS: boolean;
+  
+  /**
+   * Browser name
+   */
+  browser: string;
+  
+  /**
+   * Browser version
+   */
+  version: string;
+  
+  /**
+   * Operating system
+   */
+  os: string;
 }
 
 /**
- * Speed test options
+ * Speed test configuration options
  */
 export interface SpeedTestOptions {
-  isSafari?: boolean;
-  useAltDownload?: boolean;
+  /**
+   * Base URL for API endpoints
+   */
+  apiBaseUrl?: string;
+  
+  /**
+   * Size of test file for download test in bytes
+   */
+  testFileSize?: number;
+  
+  /**
+   * Number of parallel requests to use
+   */
+  parallelRequests?: number;
+  
+  /**
+   * Duration of each test phase in milliseconds
+   */
+  testDurationMs?: number;
 }
