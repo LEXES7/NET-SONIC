@@ -1,12 +1,15 @@
 import React from 'react';
 import { SpeedTestResult } from '@/lib/types';
 import { formatSpeed, formatMilliseconds } from '@/lib/utils';
+import { useTheme } from '@/context/ThemeContext';
 
 interface TestHistoryProps {
   history: SpeedTestResult[];
 }
 
 export default function TestHistory({ history }: TestHistoryProps) {
+  const { currentThemeColors } = useTheme();
+  
   if (!history.length) return null;
   
   return (
@@ -14,23 +17,24 @@ export default function TestHistory({ history }: TestHistoryProps) {
       {/* Title with neon effect */}
       <h3 className="text-xl font-bold mb-6"
           style={{
-            color: '#fcee09',
-            textShadow: '0 0 8px rgba(252, 238, 9, 0.5)',
+            color: currentThemeColors.primary,
+            textShadow: `0 0 8px rgba(${currentThemeColors.primaryRGB}, 0.5)`,
             fontFamily: "'Share Tech Mono', monospace",
             letterSpacing: '0.05em'
           }}>
         TEST HISTORY
       </h3>
       
-      <div className="overflow-x-auto rounded-lg"
+      <div className="overflow-x-auto rounded-lg backdrop-blur-sm"
            style={{ 
-             background: 'rgba(0, 0, 0, 0.5)',
-             border: '1px solid rgba(252, 238, 9, 0.2)',
-             boxShadow: '0 0 15px rgba(0, 0, 0, 0.5)'
+             background: 'rgba(0, 0, 0, 0.25)', // More transparent background
+             border: `1px solid rgba(${currentThemeColors.primaryRGB}, 0.15)`,
+             boxShadow: `0 0 20px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(${currentThemeColors.primaryRGB}, 0.03)`
            }}>
         <table className="min-w-full">
           <thead>
-            <tr className="border-b border-yellow-400/20">
+            <tr className="border-b"
+                style={{ borderColor: `rgba(${currentThemeColors.primaryRGB}, 0.15)` }}>
               <th className="py-4 px-5 text-sm font-medium text-left table-header">DATE</th>
               <th className="py-4 px-5 text-sm font-medium text-left table-header">DOWNLOAD</th>
               <th className="py-4 px-5 text-sm font-medium text-left table-header">UPLOAD</th>
@@ -38,7 +42,7 @@ export default function TestHistory({ history }: TestHistoryProps) {
               <th className="py-4 px-5 text-sm font-medium text-left table-header">JITTER</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-yellow-400/10">
+          <tbody className={`divide-y divide-[rgba(${currentThemeColors.primaryRGB},0.07)]`}>
             {history.map((result, index) => (
               <tr key={index} className="hover-row">
                 <td className="py-3 px-5 text-sm table-cell">
@@ -64,29 +68,29 @@ export default function TestHistory({ history }: TestHistoryProps) {
 
       <style jsx>{`
         .table-header {
-          color: rgba(252, 238, 9, 0.7);
-          text-shadow: 0 0 5px rgba(252, 238, 9, 0.3);
+          color: rgba(${currentThemeColors.primaryRGB}, 0.8);
+          text-shadow: 0 0 5px rgba(${currentThemeColors.primaryRGB}, 0.3);
           font-family: var(--font-geist-mono);
           letter-spacing: 0.1em;
         }
         
         .table-cell {
-          color: rgba(255, 255, 255, 0.85);
+          color: rgba(255, 255, 255, 0.9);
         }
         
         .value-cell {
-          color: rgba(252, 238, 9, 0.9);
-          text-shadow: 0 0 5px rgba(252, 238, 9, 0.2);
+          color: rgba(${currentThemeColors.primaryRGB}, 0.95);
+          text-shadow: 0 0 5px rgba(${currentThemeColors.primaryRGB}, 0.2);
         }
         
         .hover-row {
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
           border-left: 0px solid transparent;
         }
         
         .hover-row:hover {
-          background: rgba(252, 238, 9, 0.05);
-          border-left: 2px solid rgba(252, 238, 9, 0.5);
+          background: rgba(${currentThemeColors.primaryRGB}, 0.03);
+          border-left: 2px solid rgba(${currentThemeColors.primaryRGB}, 0.4);
         }
         
         /* Add a scrollbar styler for WebKit browsers */
@@ -96,17 +100,17 @@ export default function TestHistory({ history }: TestHistoryProps) {
         }
         
         ::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.3);
+          background: rgba(0, 0, 0, 0.2);
           border-radius: 4px;
         }
         
         ::-webkit-scrollbar-thumb {
-          background: rgba(252, 238, 9, 0.3);
+          background: rgba(${currentThemeColors.primaryRGB}, 0.25);
           border-radius: 4px;
         }
         
         ::-webkit-scrollbar-thumb:hover {
-          background: rgba(252, 238, 9, 0.5);
+          background: rgba(${currentThemeColors.primaryRGB}, 0.4);
         }
       `}</style>
     </div>

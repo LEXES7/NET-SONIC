@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { TestProgress } from '@/lib/types';
 import { formatSpeed } from '@/lib/utils';
+import { useTheme } from '@/context/ThemeContext'; // Add this import
 
 interface SpeedGaugeProps {
   isRunning: boolean;
@@ -11,6 +12,9 @@ interface SpeedGaugeProps {
 }
 
 export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedGaugeProps) {
+  // Use theme context for dynamic colors
+  const { currentThemeColors } = useTheme();
+
   // Track both visual progress and actual progress separately
   const [visualProgress, setVisualProgress] = useState(0);
   const gaugeAnimationRef = useRef<number>(0);
@@ -122,7 +126,7 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
         y1="20"  // Start further from center
         x2="50"
         y2="30" // End at position 30
-        stroke="#fcee09"
+        stroke={currentThemeColors.primary}
         strokeWidth="2"
         transform={`rotate(${rotation}, 50, 50)`}
       />
@@ -139,7 +143,7 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
         key={`label-${i}`}
         x={labelX}
         y={labelY}
-        fill="#fcee09"
+        fill={currentThemeColors.primary}
         fontSize="5"
         fontWeight="bold"
         textAnchor="middle"
@@ -163,7 +167,7 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
           y1="20" // Start at same position as major ticks
           x2="50"
           y2="26" // End shorter than major ticks
-          stroke="rgba(252, 238, 9, 0.4)"
+          stroke={`rgba(${currentThemeColors.primaryRGB}, 0.4)`}
           strokeWidth="1"
           transform={`rotate(${rotation}, 50, 50)`}
         />
@@ -180,7 +184,7 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
           <div className="absolute w-[400px] h-[400px] rounded-full"
                style={{ 
                  background: 'radial-gradient(circle, #1a1a1a 0%, #000000 100%)',
-                 boxShadow: '0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(252, 238, 9, 0.15)'
+                 boxShadow: `0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(${currentThemeColors.primaryRGB}, 0.15)`
                }}>
           </div>
           
@@ -192,7 +196,7 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
               cy="50" 
               r="48" 
               fill="none" 
-              stroke="rgba(252, 238, 9, 0.15)" 
+              stroke={`rgba(${currentThemeColors.primaryRGB}, 0.15)`}
               strokeWidth="0.5"
             />
             
@@ -208,14 +212,14 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
             {/* Progress arc - MOVED OUTWARD */}
             <path
               d="M 5,50 A 45,45 0 1,1 95,50"
-              stroke="#fcee09"
+              stroke={currentThemeColors.primary}
               strokeWidth="5"
               fill="none"
               strokeLinecap="round"
               strokeDasharray="141.4"  // Updated for larger arc (2*π*45*0.5)
               strokeDashoffset={141.4 - (141.4 * visualProgress / 100)}
               className="transition-all duration-300 ease-out"
-              style={{ filter: 'drop-shadow(0 0 3px rgba(252, 238, 9, 0.7))' }}
+              style={{ filter: `drop-shadow(0 0 3px rgba(${currentThemeColors.primaryRGB}, 0.7))` }}
             />
             
             {/* Tick marks */}
@@ -231,28 +235,28 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
                 y1="50" 
                 x2="50" 
                 y2="20" // Match the start of tick marks
-                stroke="#fcee09" 
+                stroke={currentThemeColors.primary}
                 strokeWidth="2"
                 strokeLinecap="round"
-                style={{ filter: 'drop-shadow(0 0 3px #fcee09)' }} 
+                style={{ filter: `drop-shadow(0 0 3px ${currentThemeColors.primary})` }} 
               />
-              <circle cx="50" cy="50" r="4" fill="#292929" stroke="#fcee09" strokeWidth="1.5" />
+              <circle cx="50" cy="50" r="4" fill="#292929" stroke={currentThemeColors.primary} strokeWidth="1.5" />
             </g>
             
             {/* Middle circle */}
-            <circle cx="50" cy="50" r="15" fill="none" stroke="rgba(252, 238, 9, 0.3)" strokeWidth="0.5" />
+            <circle cx="50" cy="50" r="15" fill="none" stroke={`rgba(${currentThemeColors.primaryRGB}, 0.3)`} strokeWidth="0.5" />
           </svg>
         </div>
       </div>
       
       {/* Status badge - Neon style */}
       <div 
-        className="mt-4 relative" // Added position relative for pseudo-elements
+        className="mt-4 relative"
         style={{ 
           padding: '8px 30px',
           background: 'rgba(0, 0, 0, 0.8)',
-          border: '2px solid #fcee09',
-          boxShadow: '0 0 10px rgba(252, 238, 9, 0.5), 0 0 20px rgba(252, 238, 9, 0.3), inset 0 0 8px rgba(252, 238, 9, 0.3)',
+          border: `2px solid ${currentThemeColors.primary}`,
+          boxShadow: `0 0 10px rgba(${currentThemeColors.primaryRGB}, 0.5), 0 0 20px rgba(${currentThemeColors.primaryRGB}, 0.3), inset 0 0 8px rgba(${currentThemeColors.primaryRGB}, 0.3)`,
           borderRadius: '3px',
           animation: progress.phase !== 'idle' ? 'neonPulse 1.5s infinite alternate' : 'none'
         }}
@@ -260,18 +264,18 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
         <style jsx>{`
           @keyframes neonPulse {
             from {
-              box-shadow: 0 0 10px rgba(252, 238, 9, 0.5), 0 0 20px rgba(252, 238, 9, 0.3), inset 0 0 8px rgba(252, 238, 9, 0.3);
+              box-shadow: 0 0 10px rgba(${currentThemeColors.primaryRGB}, 0.5), 0 0 20px rgba(${currentThemeColors.primaryRGB}, 0.3), inset 0 0 8px rgba(${currentThemeColors.primaryRGB}, 0.3);
             }
             to {
-              box-shadow: 0 0 15px rgba(252, 238, 9, 0.7), 0 0 30px rgba(252, 238, 9, 0.5), inset 0 0 15px rgba(252, 238, 9, 0.4);
+              box-shadow: 0 0 15px rgba(${currentThemeColors.primaryRGB}, 0.7), 0 0 30px rgba(${currentThemeColors.primaryRGB}, 0.5), inset 0 0 15px rgba(${currentThemeColors.primaryRGB}, 0.4);
             }
           }
         `}</style>
         <span 
           className="text-base font-bold tracking-widest"
           style={{ 
-            color: '#fcee09', 
-            textShadow: '0 0 5px rgba(252, 238, 9, 0.7), 0 0 10px rgba(252, 238, 9, 0.5)',
+            color: currentThemeColors.primary, 
+            textShadow: `0 0 5px rgba(${currentThemeColors.primaryRGB}, 0.7), 0 0 10px rgba(${currentThemeColors.primaryRGB}, 0.5)`,
             fontFamily: "'Courier New', monospace",
             letterSpacing: '0.15em'
           }}

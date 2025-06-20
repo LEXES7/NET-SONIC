@@ -38,3 +38,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+:root {
+  --theme-primary: #fcee09;
+  --theme-primary-rgb: 252, 238, 9;
+  --theme-secondary: #080808;
+}
+
