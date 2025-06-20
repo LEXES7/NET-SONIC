@@ -128,10 +128,11 @@ export default function AboutPage() {
                     className="inline-flex items-center text-sm font-medium py-2 px-4 rounded-full transition-all duration-300"
                     style={{ 
                       background: `rgba(${currentThemeColors.primaryRGB}, 0.1)`,
+                      borderWidth: "1px",
+                      borderStyle: "solid",
                       borderColor: `rgba(${currentThemeColors.primaryRGB}, 0.3)`,
                       color: currentThemeColors.primary,
-                      textShadow: `0 0 5px rgba(${currentThemeColors.primaryRGB}, 0.3)`,
-                      border: "1px solid"
+                      textShadow: `0 0 5px rgba(${currentThemeColors.primaryRGB}, 0.3)`
                     }}>
                 <Github size={16} className="mr-2" />
                 View Project on GitHub
@@ -142,13 +143,18 @@ export default function AboutPage() {
           
           {/* Tech Stack */}
           <div className="mt-8 bg-black/30 backdrop-blur-sm p-6 rounded-lg border" 
-               style={{ borderColor: `rgba(${currentThemeColors.primaryRGB}, 0.2)` }}>
+              style={{ borderColor: `rgba(${currentThemeColors.primaryRGB}, 0.2)` }}>
             <h3 className="text-lg font-bold mb-4" style={{ color: currentThemeColors.primary }}>Built With</h3>
             
             <div className="space-y-3">
               <div className="tech-item">
                 <span className="tech-name">Next.js</span>
                 <span className="tech-description">React framework</span>
+              </div>
+              
+              <div className="tech-item">
+                <span className="tech-name">TypeScript</span>
+                <span className="tech-description">Type-safe development</span>
               </div>
               
               <div className="tech-item">
@@ -200,7 +206,9 @@ export default function AboutPage() {
           background: rgba(${currentThemeColors.primaryRGB}, 0.1);
           color: ${currentThemeColors.primary};
           transition: all 0.2s ease;
-          border: 1px solid rgba(${currentThemeColors.primaryRGB}, 0.3);
+          border-width: 1px;
+          border-style: solid;
+          border-color: rgba(${currentThemeColors.primaryRGB}, 0.3);
         }
         
         .social-link:hover {
@@ -230,4 +238,3 @@ export default function AboutPage() {
     </div>
   );
 }
-
