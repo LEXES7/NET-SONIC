@@ -117,7 +117,7 @@ export default function AboutPage() {
               <Link href="https://twitter.com" target="_blank" className="social-link">
                 <Twitter size={20} />
               </Link>
-              <Link href="https://linkedin.com" target="_blank" className="social-link">
+              <Link href="https://www.linkedin.com/in/sachintha-bhashitha-675286357/" target="_blank" className="social-link">
                 <Linkedin size={20} />
               </Link>
             </div>
