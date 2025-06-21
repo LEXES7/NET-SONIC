@@ -1,0 +1,13 @@
+[build]
+  base = "speedtest-app/"
+  command = "NEXT_DISABLE_ESLINT=1 npm run build"
+  publish = "speedtest-app/.next"
+
+# These redirects are crucial for Next.js apps on Netlify
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
