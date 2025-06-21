@@ -4,11 +4,10 @@
   publish = ".next"
   
 [build.environment]
-  NODE_VERSION = "18.17.0"
+  NODE_VERSION = "22.0.0"  # Updated to Node.js 22
   NPM_FLAGS = "--no-optional"
   NETLIFY_USE_PNPM = "false"
   NEXT_TELEMETRY_DISABLED = "1"
-  # Force the use of the musl variant
   NEXT_FORCE_MUSL_LIBC = "true"
 
 [[plugins]]
