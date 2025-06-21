@@ -278,9 +278,9 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
               style={{ color: currentThemeColors.primary }} 
             />
             <div className="flex-1 text-sm text-gray-200">
-              To test the speed of a network, it runs locally. On Netlify, it checks connection speed 
+              To test the speed of a network- On Netlify, it checks connection speed 
               from your device to the server, not your actual internet speed. 
-              so clone & run it locally.
+              so from github repo clone & run it locally.
             </div>
             <button 
               onClick={handleCloseNotification}
