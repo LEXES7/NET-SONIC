@@ -1,7 +1,7 @@
 [build]
   base = "speedtest-app/"
-  command = "NEXT_DISABLE_ESLINT=1 npm run build"
-  publish = "speedtest-app/.next"
+  command = "npm run build"
+  publish = "out"  # Next.js static export goes to 'out' directory
 
 # These redirects are crucial for Next.js apps on Netlify
 [[redirects]]

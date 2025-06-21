@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-      "build": "NEXT_DISABLE_ESLINT=1 next build && node scripts/fix-netlify.js",
+  "build": "NEXT_DISABLE_ESLINT=1 next build && next export",
     "start": "next start",
     "lint": "next lint"
   },
