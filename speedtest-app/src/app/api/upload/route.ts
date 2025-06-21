@@ -10,41 +10,42 @@ export const config = {
 
 export async function POST(request: NextRequest) {
   try {
-    const startTime = Date.now();
-    
-    // Get the user agent and request size if available
-    const userAgent = request.headers.get('user-agent') || '';
     const contentLength = request.headers.get('content-length');
-    const requestedSize = contentLength ? parseInt(contentLength, 10) : 0;
+    let size = 0;
     
-    // Get the request body as array buffer with artificial processing delay
-    let body: ArrayBuffer;
-    
-    if (requestedSize > 256 * 1024) {
-      // For larger uploads, simulate network latency and processing time
-      // This helps create more realistic upload measurements
-      const simulatedProcessingTime = 50 + Math.floor(requestedSize / 100000); // Base delay + size-based component
-      await new Promise(resolve => setTimeout(resolve, simulatedProcessingTime));
+    // Read the request body in chunks to avoid memory issues
+    const reader = request.body?.getReader();
+    if (reader) {
+      let done = false;
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          size += value.length;
+        }
+      }
+    } else {
+      // Fallback if reader not available
+      const blob = await request.blob();
+      size = blob.size;
     }
     
-    body = await request.arrayBuffer();
-    const byteLength = body.byteLength;
-    
-    // Calculate how long it took to process
-    const processingTime = Date.now() - startTime;
-    
-    // Return success with the received byte count and timing information
+    // Add a small delay to simulate processing (helps with accuracy on fast networks)
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Return processed upload size
     return NextResponse.json({ 
-      received: byteLength,
-      processingTime, 
-      success: true 
+      success: true,
+      bytesReceived: size,
+      contentLength: contentLength ? parseInt(contentLength, 10) : null,
+      timestamp: Date.now() 
     });
   } catch (error) {
-    console.error('Upload handler error:', error);
-    return NextResponse.json({ 
-      error: 'Upload failed', 
-      success: false 
-    }, { status: 500 });
+    console.error('Error in upload handler:', error);
+    return NextResponse.json(
+      { error: 'Failed to process upload', timestamp: Date.now() },
+      { status: 500 }
+    );
   }
 }
 

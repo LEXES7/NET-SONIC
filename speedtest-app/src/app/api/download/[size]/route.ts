@@ -25,12 +25,12 @@ if (typeof process !== 'undefined') {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { size: string } }
+  context: { params: { size: string } }
 ) {
   try {
     // Get the requested file size (guard against very large values)
     const requestedSize = Math.min(
-      parseInt(params.size, 10) || 1024 * 1024,
+      parseInt(context.params.size, 10) || 1024 * 1024,
       10 * 1024 * 1024 // 10 MB max for better calibration
     );
     

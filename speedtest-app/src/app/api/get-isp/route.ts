@@ -3,56 +3,39 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     // Try to get IP and ISP info from a reliable service
-    const response = await fetch('https://ipapi.co/json/', {
+    const response = await fetch('https://ipinfo.io/json', {
       headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'NET-SONIC Speedtest'
+        'Accept': 'application/json'
       },
-      next: { revalidate: 3600 } // Cache for 1 hour
+      cache: 'no-store'
     });
-
+    
     if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+      throw new Error(`Failed to fetch IP info: ${response.status}`);
     }
-
+    
     const data = await response.json();
     
+    // Return only what we need
     return NextResponse.json({
-      isp: data.org || data.isp || 'Unknown ISP',
       ip: data.ip,
-      city: data.city,
-      country: data.country_name,
-      // Return other useful information as well
-      region: data.region,
-      timezone: data.timezone
+      isp: data.org || 'Unknown',
+      location: data.city && data.country ? `${data.city}, ${data.country}` : 'Unknown',
+      region: data.region || 'Unknown',
+      timestamp: Date.now()
     });
   } catch (error) {
-    console.error('Failed to fetch ISP info:', error);
+    console.error('Error fetching ISP info:', error);
     
-    // Fall back to another API if the first one fails
-    try {
-      const fallbackResponse = await fetch('https://ip-api.com/json/?fields=query,isp,org,country,city', {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'NET-SONIC Speedtest'
-        },
-        next: { revalidate: 3600 } // Cache for 1 hour
-      });
-      
-      if (fallbackResponse.ok) {
-        const fallbackData = await fallbackResponse.json();
-        return NextResponse.json({
-          isp: fallbackData.isp || fallbackData.org || 'Unknown ISP',
-          ip: fallbackData.query,
-          city: fallbackData.city,
-          country: fallbackData.country
-        });
-      }
-    } catch (fallbackError) {
-      console.error('Fallback ISP API failed:', fallbackError);
-    }
-    
-    // If all fails, return a generic response
-    return NextResponse.json({ isp: 'Unknown ISP', error: 'Could not determine ISP' }, { status: 200 });
+    // Return fallback data if we couldn't get real info
+    return NextResponse.json({
+      ip: '0.0.0.0',
+      isp: 'Unknown',
+      location: 'Unknown',
+      region: 'Unknown',
+      timestamp: Date.now()
+    });
   }
 }
+
+export const dynamic = 'force-dynamic';
