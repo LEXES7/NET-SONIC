@@ -101,7 +101,7 @@ export default function AboutPage() {
                 </div>
               </div>
               <h3 className="text-xl font-bold" style={{ color: currentThemeColors.primary }}>Sachintha Bhashitha</h3>
-              <p className="text-gray-400">Developer & Digital Craftsman</p>
+              <p className="text-gray-400">Developer and Thinker</p>
             </div>
             
             <p className="text-sm text-gray-300 mb-6">

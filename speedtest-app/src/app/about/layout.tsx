@@ -7,7 +7,6 @@ export default function AboutLayout({
 }>) {
   return (
     <>
-      {/* Plexus Background Canvas - only on About page */}
       <canvas 
         id="plexus-background" 
         className="fixed inset-0 z-0 w-full h-full"
@@ -16,52 +15,40 @@ export default function AboutLayout({
 
       {children}
 
-      {/* Plexus Animation Script */}
       <Script id="plexus-script">
         {`
           function initPlexus() {
-            // Canvas setup
             const canvas = document.getElementById('plexus-background');
-            if (!canvas) {
-              console.error('Plexus canvas not found');
-              return;
-            }
+            if (!canvas) return;
             
             const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              console.error('Could not get canvas context');
-              return;
-            }
+            if (!ctx) return;
             
-            // Make canvas full size
             let width = canvas.width = window.innerWidth;
             let height = canvas.height = window.innerHeight;
             
-            // Mouse tracking
             let mouseX = width / 2;
             let mouseY = height / 2;
-            const mouseRadius = 150; // Mouse influence radius
+            const mouseRadius = 150;
             
-            // Particle settings
-            const particleCount = width < 768 ? 80 : 150;
+            const particleCount = width < 768 ? 70 : 120;
             const particles = [];
             const connectionDistance = width < 768 ? 120 : 180;
             const hexRadius = width < 768 ? 60 : 90;
             
-            // Function to get theme colors (reads CSS variables)
             function getThemeColors() {
               const primaryRGB = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary-rgb').trim() || '252, 238, 9';
               return {
                 particleColor: \`rgba(\${primaryRGB}, 0.8)\`,
                 connectionColor: \`rgba(\${primaryRGB}, 0.3)\`,
                 hexColor: \`rgba(\${primaryRGB}, 0.1)\`,
-                mouseHexColor: \`rgba(\${primaryRGB}, 0.25)\`
+                mouseHexColor: \`rgba(\${primaryRGB}, 0.25)\`,
+                primaryRGB
               };
             }
             
             let themeColors = getThemeColors();
             
-            // Watch for theme color changes
             const observer = new MutationObserver(() => {
               themeColors = getThemeColors();
             });
@@ -71,36 +58,32 @@ export default function AboutLayout({
               attributeFilter: ['style']
             });
             
-            // Handle window resize
             window.addEventListener('resize', () => {
               width = canvas.width = window.innerWidth;
               height = canvas.height = window.innerHeight;
             });
             
-            // Track mouse movement
             window.addEventListener('mousemove', (e) => {
               mouseX = e.clientX;
               mouseY = e.clientY;
             });
             
-            // Particle class
             class Particle {
               constructor() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.velocityX = (Math.random() - 0.5) * 0.5;
-                this.velocityY = (Math.random() - 0.5) * 0.5;
-                this.size = Math.random() * 2.5 + 1.5;
+                this.velocityX = (Math.random() - 0.5) * 0.4;
+                this.velocityY = (Math.random() - 0.5) * 0.4;
+                this.size = Math.random() * 2 + 1;
                 this.connected = false;
+                this.connections = [];
               }
               
               update() {
-                // Calculate distance from mouse
                 const dx = mouseX - this.x;
                 const dy = mouseY - this.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Add mouse repulsion
                 if (distance < mouseRadius) {
                   const angle = Math.atan2(dy, dx);
                   const force = (mouseRadius - distance) / mouseRadius;
@@ -108,24 +91,20 @@ export default function AboutLayout({
                   this.velocityY -= Math.sin(angle) * force * 0.2;
                 }
                 
-                // Update position
                 this.x += this.velocityX;
                 this.y += this.velocityY;
                 
-                // Add slight damping to velocity
-                this.velocityX *= 0.99;
-                this.velocityY *= 0.99;
+                this.velocityX *= 0.985;
+                this.velocityY *= 0.985;
                 
-                // Bounce off edges
                 if (this.x < 0 || this.x > width) this.velocityX *= -1;
                 if (this.y < 0 || this.y > height) this.velocityY *= -1;
                 
-                // Keep particles within bounds
                 this.x = Math.max(0, Math.min(width, this.x));
                 this.y = Math.max(0, Math.min(height, this.y));
                 
-                // Reset connected flag for next frame
                 this.connected = false;
+                this.connections = [];
               }
               
               draw() {
@@ -136,100 +115,110 @@ export default function AboutLayout({
               }
             }
             
-            // Create particles
             for (let i = 0; i < particleCount; i++) {
               particles.push(new Particle());
             }
+
+            let lastFrameTime = performance.now();
+            const targetFPS = 60;
+            const frameInterval = 1000 / targetFPS;
             
-            // Animation loop
-            function animate() {
-              ctx.clearRect(0, 0, width, height);
+            function animate(currentTime) {
+              const elapsed = currentTime - lastFrameTime;
               
-              // Update and draw particles
-              for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].draw();
-              }
-              
-              // Draw connections and find potential hexagons
-              const hexagons = [];
-              
-              // Find connections between particles
-              for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                  const dx = particles[i].x - particles[j].x;
-                  const dy = particles[i].y - particles[j].y;
-                  const distance = Math.sqrt(dx * dx + dy * dy);
-                  
-                  if (distance < connectionDistance) {
-                    particles[i].connected = true;
-                    particles[j].connected = true;
+              if (elapsed > frameInterval) {
+                lastFrameTime = currentTime - (elapsed % frameInterval);
+                
+                ctx.clearRect(0, 0, width, height);
+                
+                for (let i = 0; i < particles.length; i++) {
+                  particles[i].update();
+                }
+                
+                const hexagons = [];
+                const connections = [];
+                
+                for (let i = 0; i < particles.length; i++) {
+                  for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    // Draw connection line with opacity based on distance
-                    const opacity = 1 - (distance / connectionDistance);
-                    const primaryRGB = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary-rgb').trim() || '252, 238, 9';
-                    ctx.strokeStyle = \`rgba(\${primaryRGB}, \${opacity * 0.3})\`;
-                    ctx.lineWidth = 0.8;
-                    ctx.beginPath();
-                    ctx.moveTo(particles[i].x, particles[i].y);
-                    ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.stroke();
-                    
-                    // Find potential hexagons
-                    if (Math.abs(distance - hexRadius) < 25) {
-                      for (let k = j + 1; k < particles.length; k++) {
-                        const dist_ik = Math.sqrt(Math.pow(particles[i].x - particles[k].x, 2) + 
-                                                Math.pow(particles[i].y - particles[k].y, 2));
-                        const dist_jk = Math.sqrt(Math.pow(particles[j].x - particles[k].x, 2) + 
-                                                Math.pow(particles[j].y - particles[k].y, 2));
+                    if (distance < connectionDistance) {
+                      particles[i].connected = true;
+                      particles[j].connected = true;
+                      connections.push([i, j, distance]);
+                      
+                      if (Math.abs(distance - hexRadius) < 20) {
+                        particles[i].connections.push(j);
+                        particles[j].connections.push(i);
                         
-                        if (Math.abs(dist_ik - hexRadius) < 25 && Math.abs(dist_jk - hexRadius) < 25) {
-                          hexagons.push([i, j, k]);
+                        for (let k = 0; k < particles[i].connections.length; k++) {
+                          const thirdIndex = particles[i].connections[k];
+                          if (thirdIndex !== j) {
+                            const dist_jk = Math.sqrt(
+                              Math.pow(particles[j].x - particles[thirdIndex].x, 2) + 
+                              Math.pow(particles[j].y - particles[thirdIndex].y, 2)
+                            );
+                            
+                            if (Math.abs(dist_jk - hexRadius) < 20) {
+                              hexagons.push([i, j, thirdIndex]);
+                            }
+                          }
                         }
                       }
                     }
                   }
                 }
-              }
-              
-              // Draw hexagons (triangles)
-              for (let i = 0; i < hexagons.length; i++) {
-                const [a, b, c] = hexagons[i];
                 
-                // Calculate hexagon center
-                const centerX = (particles[a].x + particles[b].x + particles[c].x) / 3;
-                const centerY = (particles[a].y + particles[b].y + particles[c].y) / 3;
+                for (let i = 0; i < connections.length; i++) {
+                  const [a, b, distance] = connections[i];
+                  const opacity = 1 - (distance / connectionDistance);
+                  ctx.strokeStyle = \`rgba(\${themeColors.primaryRGB}, \${opacity * 0.3})\`;
+                  ctx.lineWidth = 0.7;
+                  ctx.beginPath();
+                  ctx.moveTo(particles[a].x, particles[a].y);
+                  ctx.lineTo(particles[b].x, particles[b].y);
+                  ctx.stroke();
+                }
                 
-                // Check if near mouse
-                const dx = mouseX - centerX;
-                const dy = mouseY - centerY;
-                const mouseDistance = Math.sqrt(dx * dx + dy * dy);
-                const isNearMouse = mouseDistance < mouseRadius * 1.5;
-                
-                // Draw the triangle with appropriate color
-                ctx.fillStyle = isNearMouse ? themeColors.mouseHexColor : themeColors.hexColor;
-                ctx.beginPath();
-                ctx.moveTo(particles[a].x, particles[a].y);
-                ctx.lineTo(particles[b].x, particles[b].y);
-                ctx.lineTo(particles[c].x, particles[c].y);
-                ctx.closePath();
-                ctx.fill();
+                for (let i = 0; i < hexagons.length; i++) {
+                  const [a, b, c] = hexagons[i];
+                  
+                  const centerX = (particles[a].x + particles[b].x + particles[c].x) / 3;
+                  const centerY = (particles[a].y + particles[b].y + particles[c].y) / 3;
+                  
+                  const dx = mouseX - centerX;
+                  const dy = mouseY - centerY;
+                  const mouseDistance = Math.sqrt(dx * dx + dy * dy);
+                  const isNearMouse = mouseDistance < mouseRadius * 1.5;
+                  
+                  ctx.fillStyle = isNearMouse ? themeColors.mouseHexColor : themeColors.hexColor;
+                  ctx.beginPath();
+                  ctx.moveTo(particles[a].x, particles[a].y);
+                  ctx.lineTo(particles[b].x, particles[b].y);
+                  ctx.lineTo(particles[c].x, particles[c].y);
+                  ctx.closePath();
+                  ctx.fill();
+                }
+
+                for (let i = 0; i < particles.length; i++) {
+                  particles[i].draw();
+                }
               }
               
               requestAnimationFrame(animate);
             }
             
-            // Start animation
-            animate();
+            requestAnimationFrame(animate);
           }
 
-          // Initialize plexus
           if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            setTimeout(initPlexus, 1000);
+            setTimeout(initPlexus, 800);
           } else {
-            document.addEventListener('DOMContentLoaded', () => setTimeout(initPlexus, 1000));
+            document.addEventListener('DOMContentLoaded', () => setTimeout(initPlexus, 800));
           }
-          window.addEventListener('load', () => setTimeout(initPlexus, 1000));
+          window.addEventListener('load', () => setTimeout(initPlexus, 800));
         `}
       </Script>
     </>
