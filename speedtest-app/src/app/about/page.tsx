@@ -21,7 +21,7 @@ export default function AboutPage() {
           ABOUT NET SONIC
         </h1>
         <p className="text-xl text-gray-300 mb-6">
-          The story behind this is that i did this school project to test the speed of a network. it runs on local storage but in netlify it checks server speed to the webhosted area i didnt knew it until deployed it.if you want to check your network make sure to run it locally
+          The story behind this is that i did this school project to test the speed of a network. it runs on locally but in netlify it checks server speed to the webhosted area i didnt knew it until deployed it.if you want to check your network make sure to run it locally
         </p>
         <div className="w-24 h-1 mx-auto" 
              style={{ 
