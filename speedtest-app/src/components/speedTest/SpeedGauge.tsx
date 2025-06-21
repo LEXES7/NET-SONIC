@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { TestProgress } from '@/lib/types';
 import { formatSpeed } from '@/lib/utils';
 import { useTheme } from '@/context/ThemeContext';
+import { AlertCircle, X, Info } from 'lucide-react'; // Added Info icon
 import Rocket from './Rocket';
 
 interface SpeedGaugeProps {
@@ -19,6 +20,10 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
   const [visualProgress, setVisualProgress] = useState<number>(0);
   const [particleIntensity, setParticleIntensity] = useState<number>(0);
   const [launchSequence, setLaunchSequence] = useState<number>(0); // 0: pre-launch, 1-3: countdown, 4: launched, 5: orbiting
+  
+  // Notification states
+  const [showNotification, setShowNotification] = useState<boolean>(true);
+  const [notificationDismissed, setNotificationDismissed] = useState<boolean>(false);
   
   // Animation timing config
   const testDuration = 15000; // Total animation duration in ms (15 seconds)
@@ -183,6 +188,28 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
     }
   }, [progress.phase, progress.progress, isRunning]);
 
+  // Store notification state in localStorage to persist user preference
+  useEffect(() => {
+    // Check if we already hidden the notification
+    const notificationState = localStorage.getItem('net-sonic-notification');
+    if (notificationState === 'hidden') {
+      setShowNotification(false);
+      setNotificationDismissed(true);
+    }
+  }, []);
+
+  // Handle closing the notification
+  const handleCloseNotification = () => {
+    setShowNotification(false);
+    setNotificationDismissed(true);
+    localStorage.setItem('net-sonic-notification', 'hidden');
+  };
+
+  // Handle reopening the notification when icon is clicked
+  const handleReopenNotification = () => {
+    setShowNotification(true);
+  };
+
   // Get phase status text
   const getStatusText = () => {
     if (launchSequence > 0 && launchSequence < 4) {
@@ -216,6 +243,56 @@ export default function SpeedGauge({ isRunning, progress, currentSpeed }: SpeedG
 
   return (
     <div className="w-full aspect-square max-w-[500px] mx-auto my-8 relative">
+      {/* Persistent notification icon */}
+      {notificationDismissed && (
+        <div className="absolute -top-10 right-0 z-30">
+          <button
+            onClick={handleReopenNotification}
+            className="p-2 rounded-full transition-all bg-black/50 backdrop-blur-md hover:bg-black/70"
+            style={{
+              border: `1px solid rgba(${currentThemeColors.primaryRGB}, 0.5)`,
+              boxShadow: `0 0 10px rgba(${currentThemeColors.primaryRGB}, 0.3)`
+            }}
+            aria-label="Show speed test information"
+          >
+            <Info size={18} color="white" />
+          </button>
+        </div>
+      )}
+      
+      {/* Full notification message */}
+      {showNotification && (
+        <div className="absolute -top-20 left-0 right-0 z-30">
+          <div 
+            className="relative flex items-center p-4 rounded-lg backdrop-blur-md transition-all"
+            style={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              border: `1px solid rgba(${currentThemeColors.primaryRGB}, 0.7)`,
+              boxShadow: `0 0 15px rgba(${currentThemeColors.primaryRGB}, 0.4), 
+                          0 0 30px rgba(${currentThemeColors.primaryRGB}, 0.2)`
+            }}
+          >
+            <AlertCircle 
+              className="flex-shrink-0 mr-3"
+              size={24} 
+              style={{ color: currentThemeColors.primary }} 
+            />
+            <div className="flex-1 text-sm text-gray-200">
+              To test the speed of a network, it runs locally. On Netlify, it checks connection speed 
+              from your device to the server, not your actual internet speed. 
+              so clone & run it locally.
+            </div>
+            <button 
+              onClick={handleCloseNotification}
+              className="p-1 ml-3 rounded-full hover:bg-gray-800 transition-colors"
+              aria-label="Close notification"
+            >
+              <X size={18} style={{ color: currentThemeColors.primary }} />
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Main content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
         {/* Launch pad elements */}

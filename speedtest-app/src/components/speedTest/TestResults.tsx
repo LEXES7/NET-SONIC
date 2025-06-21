@@ -3,7 +3,7 @@
 import React from 'react';
 import { SpeedTestResult } from '@/lib/types';
 import { formatSpeed } from '@/lib/utils';
-import { useTheme } from '@/context/ThemeContext'; // Add this import
+import { useTheme } from '@/context/ThemeContext';
 
 interface TestResultsProps {
   result: SpeedTestResult | null;
@@ -11,7 +11,7 @@ interface TestResultsProps {
 }
 
 export default function TestResults({ result, error }: TestResultsProps) {
-  const { currentThemeColors } = useTheme(); // Access theme colors
+  const { currentThemeColors } = useTheme();
   
   if (!result && !error) {
     return null;
@@ -32,6 +32,13 @@ export default function TestResults({ result, error }: TestResultsProps) {
   }
 
   if (!result) return null;
+
+  // Function to clean up ISP name by removing AS number pattern
+  const cleanIspName = (ispName: string | undefined): string => {
+    if (!ispName) return 'Unknown';
+    // Remove "AS12345" pattern from the ISP name
+    return ispName.replace(/AS\d+\s+/, '');
+  };
 
   return (
     <div className="w-full">
@@ -69,7 +76,7 @@ export default function TestResults({ result, error }: TestResultsProps) {
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div className="info-item">
             <span className="info-label">ISP</span>
-            <span className="info-value">{result.isp || 'Unknown'}</span>
+            <span className="info-value">{cleanIspName(result.isp)}</span>
           </div>
           
           {result.connectionType && (
