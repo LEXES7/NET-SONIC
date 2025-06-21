@@ -1,33 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Generate a chunk of random data
+// Generate random data for download test
 function generateRandomData(size: number): Buffer {
   const buffer = Buffer.alloc(size);
-  
-  // Fill with random data
   for (let i = 0; i < size; i++) {
     buffer[i] = Math.floor(Math.random() * 256);
   }
-  
   return buffer;
 }
 
-// This is the correct signature for Next.js 15.3.3 API route handlers
+// Fix the parameter structure
 export async function GET(
-  request: NextRequest, 
+  request: NextRequest,
   { params }: { params: { size: string } }
 ) {
   try {
-    // Get the requested file size (limit to 10MB max)
+    // Get the requested size with a reasonable limit
     const requestedSize = Math.min(
       parseInt(params.size, 10) || 1024 * 1024,
       10 * 1024 * 1024 // 10 MB max
     );
     
-    // Generate the data
+    // Generate the test data
     const data = generateRandomData(requestedSize);
     
-    // Return the data with proper headers
+    // Return with appropriate headers
     return new NextResponse(data, {
       headers: {
         'Content-Type': 'application/octet-stream',
@@ -37,7 +34,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error in download handler:', error);
+    console.error('Error generating download data:', error);
     return new NextResponse('Error generating download content', { status: 500 });
   }
 }

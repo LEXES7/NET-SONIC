@@ -1,13 +1,11 @@
 [build]
   base = "speedtest-app/"
   command = "npm run build"
-  publish = "out"  # Next.js static export goes to 'out' directory
+  publish = ".next"
 
-# These redirects are crucial for Next.js apps on Netlify
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[build.environment]
+  NODE_VERSION = "20.10.0"
+  NEXT_TELEMETRY_DISABLED = "1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
