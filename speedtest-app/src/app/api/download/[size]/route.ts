@@ -12,10 +12,10 @@ function generateRandomData(size: number): Buffer {
   return buffer;
 }
 
-// The key fix is here - using the correct parameter structure
+// This is the correct signature for Next.js 15.3.3 API route handlers
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { size: string } }  // This is the correct format for Next.js 15.x
+  request: NextRequest, 
+  { params }: { params: { size: string } }
 ) {
   try {
     // Get the requested file size (limit to 10MB max)
