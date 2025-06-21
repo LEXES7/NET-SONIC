@@ -49,15 +49,15 @@ export class NetworkSpeedTest {
       
       // Test download - progress from 35% to 65%
       this.abortController = new AbortController();
-      this.updateProgress('download', 35, 0);
+      this.updateProgress('download', 35, 5); // Start with non-zero estimate
       const downloadSpeed = await this.measureDownloadSpeed();
-      this.updateProgress('download', 65, 0);
+      this.updateProgress('download', 65, downloadSpeed);
       
       // Test upload - progress from 70% to 95%
       this.abortController = new AbortController();
-      this.updateProgress('upload', 70, 0);
+      this.updateProgress('upload', 70, 5); // Start with non-zero estimate
       const uploadSpeed = await this.measureUploadSpeed();
-      this.updateProgress('upload', 95, 0);
+      this.updateProgress('upload', 95, uploadSpeed);
       
       // Apply calibration specifically tuned for different connection types
       let calibratedDownload = downloadSpeed;
@@ -138,7 +138,7 @@ export class NetworkSpeedTest {
       };
       
       // Use the explicit 'complete' phase type - this was causing the type error
-      this.updateProgress('complete' as TestPhase, 100, 0);
+      this.updateProgress('complete' as TestPhase, 100, calibratedUpload);
       return result;
     } catch (error) {
       console.error("Test error:", error);
@@ -414,12 +414,12 @@ export class NetworkSpeedTest {
       const startTime = performance.now();
       
       // Start with a small sample to test connection
-      this.updateProgress('download', 35, 0);
+      this.updateProgress('download', 35, 5); // Start with non-zero estimate
       const sampleSize = 256 * 1024; // 256KB
       await this.downloadChunk(sampleSize);
       
       // Update progress immediately to show movement
-      this.updateProgress('download', 40, 0);
+      this.updateProgress('download', 40, 10); // Use reasonable starting estimate
       
       // Fixed set of download sizes
       const downloadSizes = [
@@ -429,6 +429,7 @@ export class NetworkSpeedTest {
       
       let totalBytes = sampleSize; // Count initial sample in total
       let progressCounter = 40; // Start from 40%
+      let lastSpeedUpdate = 10; // Initialize with reasonable value
       
       // Sequential downloads for reliability
       const endTime = startTime + testDuration;
@@ -441,8 +442,10 @@ export class NetworkSpeedTest {
         
         try {
           // Update progress before download - increase by 3-5% each time
+          // CRITICAL CHANGE: Always include the last calculated speed in updates
           progressCounter += 3 + Math.floor(Math.random() * 3);
-          this.updateProgress('download', Math.min(65, progressCounter), 0);
+          // Don't report zero speeds during active download
+          this.updateProgress('download', Math.min(65, progressCounter), lastSpeedUpdate);
           
           // Do the actual download
           const bytes = await this.downloadChunk(downloadSize);
@@ -452,6 +455,7 @@ export class NetworkSpeedTest {
           const elapsedSec = (performance.now() - startTime) / 1000;
           if (elapsedSec > 0) {
             const currentSpeed = (totalBytes * 8) / elapsedSec / 1000000;
+            lastSpeedUpdate = currentSpeed; // Save for future updates
             this.updateProgress('download', Math.min(65, progressCounter), currentSpeed);
           }
         } catch (error) {
@@ -528,12 +532,12 @@ export class NetworkSpeedTest {
       const startTime = performance.now();
       
       // Start with a small upload for warm-up
-      this.updateProgress('upload', 70, 0);
+      this.updateProgress('upload', 70, 5); // Start with non-zero estimate
       const sampleSize = 128 * 1024; // 128KB
       const samplePayload = this.generateRandomPayload(sampleSize);
       await this.uploadChunk(samplePayload);
       
-      this.updateProgress('upload', 75, 0);
+      this.updateProgress('upload', 75, 8); // Use reasonable starting estimate
       
       // Use adaptive upload sizes based on network conditions
       // More differentiated sizes for better sensitivity to connection type
@@ -548,6 +552,7 @@ export class NetworkSpeedTest {
       let progressCounter = 75; // Start from 75%
       let successfulUploads = 0;
       let failedUploads = 0;
+      let lastSpeedUpdate = 8; // Initialize with reasonable value
       
       // Cache generated payloads to improve performance
       const payloadCache = new Map<number, ArrayBuffer>();
@@ -579,7 +584,9 @@ export class NetworkSpeedTest {
         if (uploadPromises.length < maxConcurrent) {
           // Update progress before starting the upload - increase by 1-3% each time
           progressCounter = Math.min(90, progressCounter + 1 + Math.floor(Math.random() * 3));
-          this.updateProgress('upload', progressCounter, 0);
+          
+          // CRITICAL CHANGE: Always include the last speed value
+          this.updateProgress('upload', progressCounter, lastSpeedUpdate);
           
           // Get or generate payload
           const uploadSize = uploadSizes[currentSizeIndex];
@@ -625,6 +632,7 @@ export class NetworkSpeedTest {
               const elapsedSec = (performance.now() - startTime) / 1000;
               if (elapsedSec > 0 && totalBytes > sampleSize) {
                 const currentSpeed = (totalBytes * 8) / elapsedSec / 1000000;
+                lastSpeedUpdate = currentSpeed; // Save for future updates
                 this.updateProgress('upload', Math.min(95, progressCounter), currentSpeed);
               }
             });
