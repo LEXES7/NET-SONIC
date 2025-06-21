@@ -1,5 +1,7 @@
 import { SpeedTestResult, TestProgress, SpeedTestOptions } from './types';
 
+// Explicitly define phase types to include 'complete'
+type TestPhase = 'idle' | 'ping' | 'download' | 'upload' | 'complete';
 type ProgressCallback = (progress: TestProgress) => void;
 
 export class NetworkSpeedTest {
@@ -28,27 +30,34 @@ export class NetworkSpeedTest {
 
   public async runFullTest(): Promise<SpeedTestResult> {
     try {
+      // Initial progress update to ensure UI shows something immediately
+      this.updateProgress('ping', 5, 0);
+      
       // Get connection info first
       const connectionInfo = await this.getConnectionInfo();
       console.log("Connection info:", connectionInfo);
       
-      // Test ping
+      // Test ping - start at 5% and go to 25%
       this.abortController = new AbortController();
       this.updateProgress('ping', 10, 0);
       const ping = await this.measurePing();
       
-      // Test jitter
+      // Test jitter - progress from 25% to 30%
+      this.updateProgress('ping', 25, 0);
       const jitter = await this.measureJitter();
+      this.updateProgress('ping', 30, 0);
       
-      // Test download - fixed to prevent 0% issue
+      // Test download - progress from 35% to 65%
       this.abortController = new AbortController();
-      this.updateProgress('download', 5, 0);
+      this.updateProgress('download', 35, 0);
       const downloadSpeed = await this.measureDownloadSpeed();
+      this.updateProgress('download', 65, 0);
       
-      // Test upload
+      // Test upload - progress from 70% to 95%
       this.abortController = new AbortController();
-      this.updateProgress('upload', 5, 0);
+      this.updateProgress('upload', 70, 0);
       const uploadSpeed = await this.measureUploadSpeed();
+      this.updateProgress('upload', 95, 0);
       
       // Apply calibration specifically tuned for different connection types
       let calibratedDownload = downloadSpeed;
@@ -128,7 +137,8 @@ export class NetworkSpeedTest {
         ...connectionInfo
       };
       
-      this.updateProgress('complete', 100, 0);
+      // Use the explicit 'complete' phase type - this was causing the type error
+      this.updateProgress('complete' as TestPhase, 100, 0);
       return result;
     } catch (error) {
       console.error("Test error:", error);
@@ -159,13 +169,20 @@ export class NetworkSpeedTest {
     }
   }
 
-  private updateProgress(phase: TestProgress['phase'], progress: number, currentSpeed: number): void {
+  private updateProgress(phase: TestPhase, progress: number, currentSpeed: number): void {
     if (this.progressCallback) {
+      // Force progress to be at least 1 and ensure we send an integer
+      const safeProgress = Math.max(1, Math.round(progress));
+      
+      // Directly invoke the callback - avoid setTimeout which might cause issues
       this.progressCallback({
         phase,
-        progress: Math.max(1, progress), // Ensure we never send 0 progress
+        progress: safeProgress,
         currentSpeed
       });
+      
+      // Log progress updates for debugging
+      console.log(`Progress update: ${phase} - ${safeProgress}%${currentSpeed > 0 ? ` - ${currentSpeed.toFixed(2)} Mbps` : ''}`);
     }
   }
 
@@ -316,7 +333,8 @@ export class NetworkSpeedTest {
         const end = performance.now();
         pings.push(end - start);
         
-        this.updateProgress('ping', 10 + ((i + 1) / samples) * 90, 0);
+        // More granular progress reporting - distribute between 10% and 25%
+        this.updateProgress('ping', 10 + ((i + 1) / samples) * 15, 0);
         
         // Small delay between ping measurements
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -396,12 +414,12 @@ export class NetworkSpeedTest {
       const startTime = performance.now();
       
       // Start with a small sample to test connection
-      this.updateProgress('download', 10, 0);
+      this.updateProgress('download', 35, 0);
       const sampleSize = 256 * 1024; // 256KB
       await this.downloadChunk(sampleSize);
       
       // Update progress immediately to show movement
-      this.updateProgress('download', 20, 0);
+      this.updateProgress('download', 40, 0);
       
       // Fixed set of download sizes
       const downloadSizes = [
@@ -410,7 +428,7 @@ export class NetworkSpeedTest {
       ];
       
       let totalBytes = sampleSize; // Count initial sample in total
-      let progressCounter = 20; // Start from 20%
+      let progressCounter = 40; // Start from 40%
       
       // Sequential downloads for reliability
       const endTime = startTime + testDuration;
@@ -422,9 +440,9 @@ export class NetworkSpeedTest {
         const downloadSize = downloadSizes[totalBytes % downloadSizes.length];
         
         try {
-          // Update progress before download
-          progressCounter += 10;
-          this.updateProgress('download', Math.min(95, progressCounter), 0);
+          // Update progress before download - increase by 3-5% each time
+          progressCounter += 3 + Math.floor(Math.random() * 3);
+          this.updateProgress('download', Math.min(65, progressCounter), 0);
           
           // Do the actual download
           const bytes = await this.downloadChunk(downloadSize);
@@ -434,7 +452,7 @@ export class NetworkSpeedTest {
           const elapsedSec = (performance.now() - startTime) / 1000;
           if (elapsedSec > 0) {
             const currentSpeed = (totalBytes * 8) / elapsedSec / 1000000;
-            this.updateProgress('download', Math.min(95, progressCounter), currentSpeed);
+            this.updateProgress('download', Math.min(65, progressCounter), currentSpeed);
           }
         } catch (error) {
           // Continue with next chunk even if one fails
@@ -455,7 +473,7 @@ export class NetworkSpeedTest {
       console.log(`Raw download speed: ${rawSpeed.toFixed(2)} Mbps`);
       
       // Final progress update
-      this.updateProgress('download', 95, rawSpeed);
+      this.updateProgress('download', 65, rawSpeed);
       
       return rawSpeed;
     } catch (error) {
@@ -510,12 +528,12 @@ export class NetworkSpeedTest {
       const startTime = performance.now();
       
       // Start with a small upload for warm-up
-      this.updateProgress('upload', 10, 0);
+      this.updateProgress('upload', 70, 0);
       const sampleSize = 128 * 1024; // 128KB
       const samplePayload = this.generateRandomPayload(sampleSize);
       await this.uploadChunk(samplePayload);
       
-      this.updateProgress('upload', 20, 0);
+      this.updateProgress('upload', 75, 0);
       
       // Use adaptive upload sizes based on network conditions
       // More differentiated sizes for better sensitivity to connection type
@@ -527,7 +545,7 @@ export class NetworkSpeedTest {
       ];
       
       let totalBytes = sampleSize; // Count initial sample in total
-      let progressCounter = 20; // Start from 20%
+      let progressCounter = 75; // Start from 75%
       let successfulUploads = 0;
       let failedUploads = 0;
       
@@ -559,8 +577,8 @@ export class NetworkSpeedTest {
         
         // Ensure we're not exceeding the max concurrent uploads
         if (uploadPromises.length < maxConcurrent) {
-          // Update progress before starting the upload
-          progressCounter = Math.min(90, progressCounter + 5);
+          // Update progress before starting the upload - increase by 1-3% each time
+          progressCounter = Math.min(90, progressCounter + 1 + Math.floor(Math.random() * 3));
           this.updateProgress('upload', progressCounter, 0);
           
           // Get or generate payload
@@ -607,7 +625,7 @@ export class NetworkSpeedTest {
               const elapsedSec = (performance.now() - startTime) / 1000;
               if (elapsedSec > 0 && totalBytes > sampleSize) {
                 const currentSpeed = (totalBytes * 8) / elapsedSec / 1000000;
-                this.updateProgress('upload', Math.min(90, progressCounter), currentSpeed);
+                this.updateProgress('upload', Math.min(95, progressCounter), currentSpeed);
               }
             });
           

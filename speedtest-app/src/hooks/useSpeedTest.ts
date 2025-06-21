@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { NetworkSpeedTest } from '@/lib/speedtest';
 import { SpeedTestResult, TestProgress, BrowserInfo } from '@/lib/types';
-import { detectBrowser } from '../lib/browserDetect';
+import { useSpeedTestStore } from '../store/speedtest-store';
 
 interface UseSpeedTestReturn {
   isRunning: boolean;
@@ -22,13 +22,10 @@ const defaultBrowserInfo: Pick<BrowserInfo, 'isSafari'> = {
 };
 
 export const useSpeedTest = (): UseSpeedTestReturn => {
-  const [isRunning, setIsRunning] = useState(false);
-  const [progress, setProgress] = useState<TestProgress>({
-    phase: 'idle',
-    progress: 0,
-    currentSpeed: 0,
-  });
-  const [result, setResult] = useState<SpeedTestResult | null>(null);
+  // Use our Zustand store for progress state
+  const { progress, updateProgress, setResult, setRunning, isRunning } = useSpeedTestStore();
+  
+  // Keep some state locally
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<SpeedTestResult[]>([]);
   
@@ -42,8 +39,9 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const detectedBrowser = detectBrowser();
-        setBrowser({ isSafari: detectedBrowser.isSafari });
+        // Basic browser detection
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        setBrowser({ isSafari });
       } catch (err) {
         console.error('Browser detection failed:', err);
       }
@@ -87,25 +85,30 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
     }
   }, [history]);
 
-  // Improved progress handler
+  // Improved progress handler using the store
   const handleProgress = useCallback((progressData: TestProgress) => {
+    // Log progress updates
+    console.log(`Progress update: ${progressData.phase} - ${progressData.progress}%${
+      progressData.currentSpeed > 0 ? ` - ${progressData.currentSpeed.toFixed(2)} Mbps` : ''
+    }`);
+    
     // Ensure we never report 0% progress when test is active
-    if (progressData.phase !== 'idle' && progressData.phase !== 'complete' && progressData.progress < 5) {
-      progressData.progress = 5;
+    if (progressData.progress < 1 && progressData.phase !== 'idle') {
+      progressData.progress = 1;
     }
     
-    setProgress(progressData);
-  }, []);
+    // Use store action to update progress
+    updateProgress(progressData);
+  }, [updateProgress]);
 
   const startTest = useCallback(async () => {
     if (isRunning) return;
 
-    setIsRunning(true);
+    // Set initial state
+    setRunning(true);
     setError(null);
     setResult(null);
-    
-    // Start with a minimum progress
-    setProgress({ phase: 'ping', progress: 5, currentSpeed: 0 });
+    updateProgress({ phase: 'ping', progress: 5, currentSpeed: 0 });
 
     try {
       // Create a new test instance and store the reference
@@ -127,25 +130,28 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
         testResult.uploadSpeed = 1000;
       }
       
+      // Update the store with the result
       setResult(testResult);
+      
+      // Update history
       setHistory(prev => {
         const updated = [testResult, ...prev.slice(0, 9)]; // Keep last 10 results
         return updated;
       });
       
       // Ensure we show 100% on completion
-      setProgress({ phase: 'complete', progress: 100, currentSpeed: 0 });
+      updateProgress({ phase: 'complete', progress: 100, currentSpeed: 0 });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Test failed';
       setError(errorMessage);
       console.error('Speed test failed:', err);
       // Reset progress
-      setProgress(prev => ({ ...prev, phase: 'idle' }));
+      updateProgress({ phase: 'idle', progress: 0, currentSpeed: 0 });
     } finally {
-      setIsRunning(false);
+      setRunning(false);
       speedTestRef.current = null;
     }
-  }, [isRunning, browser.isSafari, handleProgress]);
+  }, [isRunning, browser.isSafari, handleProgress, setRunning, setResult, updateProgress]);
 
   const resetTest = useCallback(() => {
     // Cancel any ongoing test
@@ -154,11 +160,14 @@ export const useSpeedTest = (): UseSpeedTestReturn => {
       speedTestRef.current = null;
     }
     
-    setIsRunning(false);
-    setProgress({ phase: 'idle', progress: 0, currentSpeed: 0 });
+    setRunning(false);
+    updateProgress({ phase: 'idle', progress: 0, currentSpeed: 0 });
     setResult(null);
     setError(null);
-  }, []);
+  }, [setRunning, updateProgress, setResult]);
+
+  // Extract result from store
+  const result = useSpeedTestStore(state => state.result);
 
   return {
     isRunning,
