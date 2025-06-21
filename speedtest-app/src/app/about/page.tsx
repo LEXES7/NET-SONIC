@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+// Remove unused Image import
 import Link from 'next/link';
 import { Github, Linkedin, Twitter, ExternalLink } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
@@ -38,16 +38,16 @@ export default function AboutPage() {
           </h2>
           
           <p className="text-gray-200 leading-relaxed">
-            I created NET SONIC as a personal project born from curiosity. I've always been fascinated by how we 
+            I created NET SONIC as a personal project born from curiosity. I&apos;ve always been fascinated by how we 
             measure internet performance, and I wanted to see if I could build something that was not only functional 
             but also visually engaging. Most speed tests out there feel clinical and boring – I wanted to create 
             something that would actually be fun to use.
           </p>
           
           <p className="text-gray-200 leading-relaxed">
-            The cyberpunk aesthetic wasn't just a random choice. I've always loved the neon-lit, high-tech visual 
-            language of cyberpunk media. It felt like the perfect match for a tool that's fundamentally about 
-            measuring your connection to the digital world. There's something satisfying about watching those 
+            The cyberpunk aesthetic wasn&apos;t just a random choice. I&apos;ve always loved the neon-lit, high-tech visual 
+            language of cyberpunk media. It felt like the perfect match for a tool that&apos;s fundamentally about 
+            measuring your connection to the digital world. There&apos;s something satisfying about watching those 
             neon-colored metrics climb during a test.
           </p>
           
@@ -64,9 +64,9 @@ export default function AboutPage() {
           </p>
           
           <p className="text-gray-200 leading-relaxed">
-            One aspect I'm particularly proud of is the responsive plexus background. It's not just eye candy – 
+            One aspect I&apos;m particularly proud of is the responsive plexus background. It&apos;s not just eye candy – 
             I designed it to subtly respond to the test results, creating a visual representation of your 
-            connection's stability. It's these little details that I believe make using NET SONIC a more 
+            connection&apos;s stability. It&apos;s these little details that I believe make using NET SONIC a more 
             engaging experience than standard speed tests.
           </p>
           
@@ -75,15 +75,15 @@ export default function AboutPage() {
           </h2>
           
           <p className="text-gray-200 leading-relaxed">
-            This project started as a personal experiment, but I've got some ideas for where to take it next. 
-            I'd love to add historical tracking so users can monitor their connection quality over time, and 
-            I'm exploring ways to provide more detailed diagnostics when problems are detected. There's also 
+            This project started as a personal experiment, but I&apos;ve got some ideas for where to take it next. 
+            I&apos;d love to add historical tracking so users can monitor their connection quality over time, and 
+            I&apos;m exploring ways to provide more detailed diagnostics when problems are detected. There&apos;s also 
             room for more customization options – the theme selector is just the beginning.
           </p>
           
           <p className="text-gray-200 leading-relaxed">
-            I'm also interested in making NET SONIC work better across different types of connections. While 
-            it handles standard broadband well, I'd like to optimize it for satellite, cellular, and other 
+            I&apos;m also interested in making NET SONIC work better across different types of connections. While 
+            it handles standard broadband well, I&apos;d like to optimize it for satellite, cellular, and other 
             alternative connections that have different performance characteristics.
           </p>
         </div>
@@ -107,7 +107,7 @@ export default function AboutPage() {
             <p className="text-sm text-gray-300 mb-6">
               I build digital things that combine functionality with engaging design. NET SONIC is a personal 
               project that let me explore the intersection of technical utility and creative presentation - 
-              two areas I'm particularly passionate about.
+              two areas I&apos;m particularly passionate about.
             </p>
             
             <div className="flex justify-center space-x-4 mb-6">
