@@ -4,8 +4,16 @@
   publish = ".next"
   
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "18.20.0"
   NPM_FLAGS = "--no-optional"
+  # Add these environment variables to fix the CSS issues
+  NEXT_TELEMETRY_DISABLED = "1"
+  # Use the musl version instead of gnu
+  NEXT_FORCE_MUSL_LIBC = "1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+  
+[functions]
+  # Increase function timeout for larger file processing
+  node_bundler = "esbuild"
