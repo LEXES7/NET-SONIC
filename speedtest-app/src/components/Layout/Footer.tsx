@@ -202,11 +202,21 @@ export default function Footer() {
                   className="bg-black/50 text-gray-300 px-4 py-2 text-sm rounded-l-md focus:outline-none w-full max-w-[200px]"
                   style={{ 
                     boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
-                    border: `1px solid rgba(${currentThemeColors.primaryRGB}, 0.3)`,
+                    borderTop: `1px solid rgba(${currentThemeColors.primaryRGB}, 0.3)`,
+                    borderLeft: `1px solid rgba(${currentThemeColors.primaryRGB}, 0.3)`,
+                    borderBottom: `1px solid rgba(${currentThemeColors.primaryRGB}, 0.3)`,
                     borderRight: 'none'
                   }}
-                  onFocus={(e) => e.currentTarget.style.borderColor = `rgba(${currentThemeColors.primaryRGB}, 0.5)`}
-                  onBlur={(e) => e.currentTarget.style.borderColor = `rgba(${currentThemeColors.primaryRGB}, 0.3)`}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderTop = `1px solid rgba(${currentThemeColors.primaryRGB}, 0.5)`;
+                    e.currentTarget.style.borderLeft = `1px solid rgba(${currentThemeColors.primaryRGB}, 0.5)`;
+                    e.currentTarget.style.borderBottom = `1px solid rgba(${currentThemeColors.primaryRGB}, 0.5)`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderTop = `1px solid rgba(${currentThemeColors.primaryRGB}, 0.3)`;
+                    e.currentTarget.style.borderLeft = `1px solid rgba(${currentThemeColors.primaryRGB}, 0.3)`;
+                    e.currentTarget.style.borderBottom = `1px solid rgba(${currentThemeColors.primaryRGB}, 0.3)`;
+                  }}
                 />
                 <button 
                   type="submit" 
